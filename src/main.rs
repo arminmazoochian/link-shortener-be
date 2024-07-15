@@ -2,6 +2,7 @@ mod db;
 
 use std::collections::HashMap;
 use std::sync::{Mutex, MutexGuard};
+use actix_cors::Cors;
 use actix_web::{get, post, web, App, HttpResponse, HttpServer, Responder, HttpRequest};
 use actix_web::web::Redirect;
 use mongodb::{Client, Database};
@@ -44,7 +45,7 @@ async fn get_all_handler() -> impl Responder {
     HttpResponse::Ok().body(response)
 }
 
-#[post("/create")]
+#[post("/create/")]
 async fn create_handler(req_body: web::Json<CreateShortLinkRequest>) -> impl Responder {
     let s: String = rand::thread_rng()
         .sample_iter(&Alphanumeric)
@@ -56,14 +57,22 @@ async fn create_handler(req_body: web::Json<CreateShortLinkRequest>) -> impl Res
     let db_manager: MutexGuard<Option<DataBaseManager>> = DATABASE.lock().unwrap();
     let mapping = URLMapping {
         url: req_body.url.clone(),
-        short_link: s,
+        short_link: s.clone(),
     };
-    db_manager.as_ref().expect("DB cannot be null")
-        .get_db().collection("mapping")
-        .insert_one(mapping, None).await.expect("Insert failed");
+    let existing_short_link: String = db_manager.as_ref().unwrap().get_short_link_from_url(req_body.url.clone()).await;
+    if existing_short_link.is_empty() {
+        db_manager.as_ref().expect("DB cannot be null")
+            .get_db().collection("mapping")
+            .insert_one(mapping, None).await.expect("Insert failed");
+
+        HttpResponse::Ok().content_type(mime::APPLICATION_JAVASCRIPT).body(serde_json::to_string(&URLMapping { url: req_body.url.clone(), short_link: s.clone() }).unwrap())
+    }
+
+    else {
+        HttpResponse::Ok().content_type(mime::APPLICATION_JAVASCRIPT).body(serde_json::to_string(&URLMapping { url: req_body.url.clone(), short_link: existing_short_link }).unwrap())
+    }
 
 
-    HttpResponse::Ok().body(req_body.url.clone())
 }
 
 #[get("/{link}")]
@@ -86,12 +95,14 @@ async fn main() -> std::io::Result<()> {
     db_manager.set_db(database);
     DATABASE.lock().unwrap().replace(db_manager);
     HttpServer::new(|| {
+        let cors = Cors::permissive();
         App::new()
+            .wrap(cors)
             .service(get_all_handler)
             .service(create_handler)
             .service(link_handler)
     })
-        .bind(("127.0.0.1", 9090))?
+        .bind(("127.0.0.1", 9191))?
         .run()
         .await
 }

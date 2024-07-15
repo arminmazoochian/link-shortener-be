@@ -1,5 +1,6 @@
 use mongodb::bson::doc;
 use mongodb::Database;
+use mongodb::error::Error;
 use crate::URLMapping;
 
 pub trait IDataBaseManager {
@@ -8,6 +9,7 @@ pub trait IDataBaseManager {
     fn set_db(&mut self, db: Database);
     fn dummy_read(&self) -> &'static str;
     async fn check_mapping(&self, link: String) -> String;
+    async fn get_short_link_from_url(&self, url: String) -> String;
 }
 
 pub struct DataBaseManager {
@@ -41,6 +43,16 @@ impl IDataBaseManager for DataBaseManager {
         match mapping {
             None => "".to_string(),
             Some(_) => mapping.unwrap().url
+        }
+    }
+
+    async fn get_short_link_from_url(&self, url: String) -> String {
+        let mapping: Option<URLMapping> = self.get_db().collection("mapping")
+            .find_one(doc! {"url": url}, None).await.expect("No such mapping");
+
+        match mapping {
+            None => "".to_string(),
+            Some(_) => mapping.unwrap().short_link
         }
     }
 }
