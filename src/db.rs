@@ -1,15 +1,16 @@
 use mongodb::bson::doc;
 use mongodb::Database;
-use mongodb::error::Error;
-use crate::URLMapping;
+use crate::{URLMapping};
+use crate::models::User;
 
 pub trait IDataBaseManager {
     fn new() -> Self;
     fn get_db(&self) -> Database;
     fn set_db(&mut self, db: Database);
-    fn dummy_read(&self) -> &'static str;
     async fn check_mapping(&self, link: String) -> String;
     async fn get_short_link_from_url(&self, url: String) -> String;
+
+    async fn find_user_by_username(&self, username: String) -> String;
 }
 
 pub struct DataBaseManager {
@@ -32,13 +33,9 @@ impl IDataBaseManager for DataBaseManager {
         self.db = Some(db);
     }
 
-    fn dummy_read(&self) -> &'static str {
-        "DUMMY_READ"
-    }
-
     async fn check_mapping(&self, link: String) -> String {
         let mapping: Option<URLMapping> = self.get_db().collection("mapping")
-            .find_one(doc! {"short_link": link}, None).await.expect("No such mapping");
+            .find_one(doc! {"short_link": link}).await.expect("No such mapping");
 
         match mapping {
             None => "".to_string(),
@@ -48,11 +45,21 @@ impl IDataBaseManager for DataBaseManager {
 
     async fn get_short_link_from_url(&self, url: String) -> String {
         let mapping: Option<URLMapping> = self.get_db().collection("mapping")
-            .find_one(doc! {"url": url}, None).await.expect("No such mapping");
+            .find_one(doc! {"url": url}).await.expect("No such mapping");
 
         match mapping {
             None => "".to_string(),
             Some(_) => mapping.unwrap().short_link
+        }
+    }
+
+    async fn find_user_by_username(&self, username: String) -> String {
+        let user_opt: Option<User> = self.get_db().collection("user")
+            .find_one(doc! {"username": username}).await.expect("No such user");
+
+        match user_opt {
+            None => "".to_string(),
+            Some(_) => user_opt.unwrap().password
         }
     }
 }
