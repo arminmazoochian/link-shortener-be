@@ -3,7 +3,7 @@
 ## Requirements
 - MongoDB (Version 3.1.0 or higher, lower versions may work but are untested)
 
-## How to run
+## How to run?
 ### Shell
 To run QRL on your terminal, ensure Rust is installed and then use the command below:
 ```Bash
@@ -13,9 +13,8 @@ To run QRL on your terminal, ensure Rust is installed and then use the command b
 ### Docker
 To run QRL in docker, use the Dockerfile included in the repo.
 ```Bash
-  docker compose up -d
+  docker build -t .
 ```
-
 MongoDB is not included in the image above. 
 To use this with a separate MongoDB image, you can use the following template file.
 ```YAML
@@ -29,6 +28,9 @@ services:
     image: mongodb:latest
     ports:
       - "27017:27017"
+```
+```Bash
+  docker compose up -d
 ```
 
 ## How to contribute?
