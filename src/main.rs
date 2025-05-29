@@ -22,9 +22,7 @@ static DATABASE: Lazy<Mutex<Option<DataBaseManager>>> = Lazy::new(|| {
 });
 
 static URL_MAP: Lazy<Mutex<HashMap<String, String>>> = Lazy::new(|| {
-    let mut map: HashMap<String, String> = HashMap::new();
-    map.insert("https://google.com".to_string(), "d47ewks".to_string());
-    map.insert("https://mazoochian.com".to_string(), "sdhe62y".to_string());
+    let map: HashMap<String, String> = HashMap::new();
     Mutex::new(map)
 });
 
